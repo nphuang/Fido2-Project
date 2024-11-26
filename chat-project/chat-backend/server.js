@@ -137,7 +137,7 @@ app.get('/generate-registration-options', async (req, res) => {
       authenticatorSelection: {
         residentKey: 'preferred',
         userVerification: 'preferred',
-        authenticatorAttachment: 'platform',
+        // authenticatorAttachment: "platform",
       },
     });
 
