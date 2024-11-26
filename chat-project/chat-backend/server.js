@@ -15,7 +15,7 @@ import db from './database.js';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
 const app = express();
 app.use(bodyParser.json());
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: 'https://localhost:5173' }));
 
 const rpName = 'Chat Room Demo';
 const rpID = 'localhost';

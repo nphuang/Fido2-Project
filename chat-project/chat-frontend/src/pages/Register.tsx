@@ -36,7 +36,7 @@ const Register: React.FC = () => {
       console.log('Requesting registration options for username:', username);
 
       // 向後端請求註冊選項
-      const optionsResp = await axios.get('http://localhost:4000/generate-registration-options', {
+      const optionsResp = await axios.get('https://localhost:443/generate-registration-options', {
         params: { username },
       });
       const options = optionsResp.data;
@@ -57,7 +57,7 @@ const Register: React.FC = () => {
       console.log('Received attestation response:', attestationResponse);
 
       // 將認證器的回應傳回後端進行驗證
-      const verificationResp = await axios.post('http://localhost:4000/verify-registration', {
+      const verificationResp = await axios.post('https://localhost:443/verify-registration', {
         username,
         response: attestationResponse,
       });

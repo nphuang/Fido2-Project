@@ -24,7 +24,7 @@ const Login: React.FC = () => {
       setError('');
 
       // 向後端請求 WebAuthn 驗證選項
-      const optionsResp = await axios.get('http://localhost:4000/generate-authentication-options', {
+      const optionsResp = await axios.get('https://localhost:443/generate-authentication-options', {
         params: { username },
       });
       const options = optionsResp.data;
@@ -40,7 +40,7 @@ const Login: React.FC = () => {
       const assertionResponse = await startAuthentication({ optionsJSON: options });
 
       // 向後端傳送驗證結果
-      const verificationResp = await axios.post('http://localhost:4000/verify-authentication', {
+      const verificationResp = await axios.post('https://localhost:443/verify-authentication', {
         username,
         response: assertionResponse,
       });
@@ -62,7 +62,7 @@ const Login: React.FC = () => {
 
   return (
     <div className="login-container">
-      <h1>Chat Room</h1>
+      <h1>Webauthn Demo</h1>
       <p className="login-instruction">輸入您的用戶名以登入</p>
       <input
         type="text"

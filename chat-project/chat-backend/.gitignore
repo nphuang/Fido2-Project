@@ -1,0 +1,14 @@
+# Node.js 專案常見忽略
+node_modules/
+dist/
+.env
+
+# 敏感檔案
+*.pem
+*.db
+
+# 編譯檔案
+*.log
+*.tmp
+*.swp
+*.bak

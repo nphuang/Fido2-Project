@@ -7,4 +7,17 @@ export default defineConfig({
   // server: {
   //   port: 5173, // 指定自訂的port
   // },
+  server: {
+    https: {
+      key: './localhost-key.pem',
+      cert: './localhost.pem',
+    },
+    host: 'localhost',
+    port: 5173,
+    hmr: {
+      protocol: 'wss', // 使用 WebSocket 安全协议
+      host: 'localhost',
+    },
+  },
+
 })
