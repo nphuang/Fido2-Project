@@ -16,3 +16,5 @@ https://fullstackladder.dev/blog/2023/06/11/passkeys-using-simplewebauthn/
 https://llx.life/note/add-webauthn-to-my-blog
 
 https://developers.google.com/codelabs/webauthn-reauth?hl=zh-tw#0
+
+https://www.passkeys.com/guide
