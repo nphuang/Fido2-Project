@@ -1,5 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import https from 'https';
+import fs from 'fs';
 import cors from 'cors';
 // const { setupWebSocket } = require('./services/websocket');
 import {
@@ -11,16 +13,13 @@ import {
 import db from './database.js';
 // import { setupWebSocket } from './services/websocket.js';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
-
-
 const app = express();
 app.use(bodyParser.json());
 app.use(cors({ origin: 'http://localhost:5173' }));
 
-
 const rpName = 'Chat Room Demo';
 const rpID = 'localhost';
-const origin = `http://${rpID}:5173`;
+const origin = `https://${rpID}:5173`;
 
 // 獲取用戶
 function getUserByUsername(username, callback) {
@@ -292,8 +291,29 @@ app.post('/verify-authentication', async (req, res) => {
   });
 });
 
+// HTTP -> HTTPS 重定向
+const httpsServer = https.createServer(
+  {
+    // 認證文件：需要由可信的證書頒發機構（CA）生成
+    key: fs.readFileSync('./localhost-key.pem'), // 私鑰
+    cert: fs.readFileSync('localhost.pem'), // 證書
+  },
+  app // Express 應用
+);
+app.use((req, res, next) => {
+  if (!req.secure) {
+    return res.redirect(`https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
 app.listen(4000, () => {
   console.log('Server running at http://localhost:4000');
+});
+
+
+httpsServer.listen(443, () => {
+  console.log('HTTPS Server running at https://localhost:443');
 });
 
 // WebSocket 設置
