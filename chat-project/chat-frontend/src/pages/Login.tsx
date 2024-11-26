@@ -52,7 +52,7 @@ const Login: React.FC = () => {
 
   return (
     <div className="login-container">
-      <h1>聊天室 Demo</h1>
+      <h1>Chat Room</h1>
       <p className="login-instruction">輸入您的用戶名以登入</p>
       <input
         type="text"
