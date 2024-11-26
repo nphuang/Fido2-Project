@@ -2,18 +2,19 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Login.css';
-import { useUser } from '../context/UserContext';
+// import { useUser } from '../context/UserContext';
 import { startAuthentication } from '@simplewebauthn/browser';
 
 const Login: React.FC = () => {
-  const [inputUsername, setInputUsername] = useState('');
+  // const [inputUsername, setInputUsername] = useState('');
+  const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false); // 加載狀態
   const navigate = useNavigate();
-  const { setUsername } = useUser();
+  // const { setUsername } = useUser();
 
   const handleLogin = async () => {
-    if (!inputUsername.trim()) {
+    if (!username.trim()) {
       setError('用戶名不可為空');
       return;
     }
@@ -23,21 +24,30 @@ const Login: React.FC = () => {
       setError('');
 
       // 向後端請求 WebAuthn 驗證選項
-      const optionsResp = await axios.get('/generate-authentication-options', {
-        params: { username: inputUsername },
+      const optionsResp = await axios.get('http://localhost:4000/generate-authentication-options', {
+        params: { username },
       });
       const options = optionsResp.data;
 
+      // 檢查返回的 options 結構是否完整
+      if (!options || !options.challenge) {
+        console.error('Invalid options received:', options);
+        throw new Error('Authentication options are incomplete or missing challenge');
+      }
+      console.log('Authentication options:', options);
+
       // 啟動 WebAuthn 驗證
-      const assertionResponse = await startAuthentication(options);
+      const assertionResponse = await startAuthentication({ optionsJSON: options });
 
       // 向後端傳送驗證結果
-      const verificationResp = await axios.post('/verify-authentication', assertionResponse);
-      const { verified, token } = verificationResp.data;
+      const verificationResp = await axios.post('http://localhost:4000/verify-authentication', {
+        username,
+        response: assertionResponse,
+      });
+      const { verified } = verificationResp.data;
 
       if (verified) {
-        localStorage.setItem('token', token); // 儲存登入 token
-        setUsername(inputUsername); // 更新全域用戶名
+        // setUsername(username);
         navigate('/chat'); // 跳轉到聊天頁面
       } else {
         setError('登入失敗，請重試');
@@ -57,8 +67,8 @@ const Login: React.FC = () => {
       <input
         type="text"
         placeholder="輸入用戶名"
-        value={inputUsername}
-        onChange={(e) => setInputUsername(e.target.value)}
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
         className="login-input"
       />
       <button

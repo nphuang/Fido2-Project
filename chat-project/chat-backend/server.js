@@ -12,6 +12,7 @@ import db from './database.js';
 // import { setupWebSocket } from './services/websocket.js';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
 
+
 const app = express();
 app.use(bodyParser.json());
 app.use(cors({ origin: 'http://localhost:5173' }));
@@ -73,7 +74,19 @@ function updateCounter(credID, newCounter, callback) {
   db.run('UPDATE passkeys SET counter = ? WHERE cred_id = ?', [newCounter, credID], callback);
 }
 
+const CHALLENGE_EXPIRY_MS = 5 * 60 * 1000; // 5 分鐘
 const challenges = new Map(); // 暫時存儲每個用戶的挑戰碼
+function setChallenge(userId, challenge) {
+  challenges.set(userId, { challenge, expiresAt: Date.now() + CHALLENGE_EXPIRY_MS });
+}
+function getChallenge(userId) {
+  const challengeData = challenges.get(userId);
+  if (challengeData && Date.now() < challengeData.expiresAt) {
+    return challengeData.challenge;
+  }
+  challenges.delete(userId); // 過期後刪除
+  return null;
+}
 
 // 註冊選項生成 API
 app.get('/generate-registration-options', async (req, res) => {
@@ -122,7 +135,7 @@ app.get('/generate-registration-options', async (req, res) => {
         },
       });
       // 存儲挑戰碼
-      challenges.set(user.id, options.challenge);
+      setChallenge(user.id, options.challenge);
       console.log('Generated registration options:', options);
       res.json(options);
     });
@@ -140,7 +153,7 @@ app.post('/verify-registration', async (req, res) => {
       return res.status(500).json({ error: '用戶不存在' });
     }
 
-    const expectedChallenge = challenges.get(user.id);
+    const expectedChallenge = getChallenge(user.id);
     if (!expectedChallenge) {
       console.error('Challenge not found or expired for user:', user.id);
       return res.status(400).json({ error: '挑戰碼丟失或已過期' });
@@ -183,67 +196,98 @@ app.post('/verify-registration', async (req, res) => {
   });
 });
 
+//
+
 // 登入選項生成 API
-app.get('/generate-authentication-options', (req, res) => {
+app.get('/generate-authentication-options', async (req, res) => {
   const { username } = req.query;
 
-  getUserByUsername(username, (err, user) => {
-    if (err || !user) return res.status(500).json({ error: '用戶不存在' });
+  getUserByUsername(username, async (err, user) => {
+    if (err || !user) {
+      console.error('User not found or database error:', err);
+      return res.status(500).json({ error: '用戶不存在' });
+    }
 
-    getPasskeysByUserId(user.id, (err, passkeys) => {
-      if (err) return res.status(500).json({ error: '資料庫錯誤' });
+    getPasskeysByUserId(user.id, async (err, passkeys) => {
+      if (err) {
+        console.error('Error fetching passkeys:', err);
+        return res.status(500).json({ error: '資料庫錯誤' });
+      }
 
-      const options = generateAuthenticationOptions({
+      const options = await generateAuthenticationOptions({
         rpID,
         allowCredentials: passkeys.map((key) => ({
           id: key.cred_id,
           type: 'public-key',
         })),
       });
-
+      console.log('Generated authentication options:', options);
+      setChallenge(user.id, options.challenge); // 存儲挑戰碼
       res.json(options);
     });
   });
 });
 
 // 登入驗證 API
-app.post('/verify-authentication', (req, res) => {
-  const { username } = req.body;
+app.post('/verify-authentication', async (req, res) => {
+  const { username, response } = req.body;
 
-  getUserByUsername(username, (err, user) => {
-    if (err || !user) return res.status(500).json({ error: '用戶不存在' });
+  console.log('Received authentication request for username:', username);
 
-    const { response } = req.body;
+  getUserByUsername(username, async (err, user) => {
+    if (err || !user) {
+      console.error('User not found or database error:', err);
+      return res.status(500).json({ error: '用戶不存在' });
+    }
 
-    getPasskeysByUserId(user.id, (err, passkeys) => {
-      if (err) return res.status(500).json({ error: '資料庫錯誤' });
+    const expectedChallenge = getChallenge(user.id);
+    if (!expectedChallenge) {
+      console.error('Challenge not found or expired for user:', user.id);
+      return res.status(400).json({ error: '挑戰碼丟失或已過期' });
+    }
+
+    getPasskeysByUserId(user.id, async (err, passkeys) => {
+      if (err) {
+        console.error('Error fetching passkeys:', err);
+        return res.status(500).json({ error: '資料庫錯誤' });
+      }
 
       const credential = passkeys.find((key) => key.cred_id === response.id);
 
-      if (!credential) return res.status(400).json({ error: '憑證未找到' });
+      if (!credential) {
+        console.error('Credential not found for ID:', response.id);
+        return res.status(400).json({ error: '憑證未找到' });
+      }
 
-      verifyAuthenticationResponse({
-        response,
-        expectedChallenge: response.challenge,
-        expectedOrigin: origin,
-        expectedRPID: rpID,
-        credential: {
-          id: credential.cred_id,
-          publicKey: credential.cred_public_key,
-          counter: credential.counter,
-        },
-      })
-        .then(({ verified, authenticationInfo }) => {
-          if (verified) {
-            updateCounter(credential.cred_id, authenticationInfo.newCounter, (err) => {
-              if (err) return res.status(500).json({ error: '無法更新計數器' });
-              res.json({ verified: true });
-            });
-          } else {
-            res.json({ verified: false });
-          }
-        })
-        .catch(() => res.status(400).json({ error: '驗證失敗' }));
+      try {
+        const { verified, authenticationInfo } = await verifyAuthenticationResponse({
+          response,
+          expectedChallenge,
+          expectedOrigin: origin,
+          expectedRPID: rpID,
+          credential: {
+            id: credential.cred_id,
+            publicKey: new Uint8Array(credential.cred_public_key), // 確保格式正確
+            counter: credential.counter,
+          },
+        });
+
+        if (verified) {
+          updateCounter(credential.cred_id, authenticationInfo.newCounter, (err) => {
+            if (err) {
+              console.error('Error updating counter:', err);
+              return res.status(500).json({ error: '無法更新計數器' });
+            }
+            res.json({ verified: true });
+          });
+        } else {
+          console.error('Authentication failed during verification');
+          res.json({ verified: false });
+        }
+      } catch (err) {
+        console.error('Error verifying authentication response:', err);
+        res.status(400).json({ error: '驗證失敗', details: err.message });
+      }
     });
   });
 });

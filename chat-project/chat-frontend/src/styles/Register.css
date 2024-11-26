@@ -48,3 +48,17 @@
     margin-top: 20px;
   }
   
+  .back-to-login {
+    margin-top: 20px;
+    font-size: 14px;
+  }
+  
+  .back-to-login a {
+    color: #007bff;
+    text-decoration: none;
+  }
+  
+  .back-to-login a:hover {
+    text-decoration: underline;
+  }
+  

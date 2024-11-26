@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { startRegistration } from '@simplewebauthn/browser';
+import React, { useEffect, useState } from 'react';
+import { startRegistration, browserSupportsWebAuthn, platformAuthenticatorIsAvailable } from '@simplewebauthn/browser';
 import axios from 'axios';
 import '../styles/Register.css'; // 添加樣式
+import { Link } from 'react-router-dom';
+
 
 const Register: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -9,6 +11,18 @@ const Register: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false); // 註冊過程的加載狀態
 
+  // 檢查瀏覽器是否支持 WebAuthn 以及平台認證器的可用性
+  useEffect(() => {
+    const checkPlatformAuthAvailability = async () => {
+      const isAvailable = await platformAuthenticatorIsAvailable();
+      if (!isAvailable) {
+        setError('當前設備不支持平台認證器');
+      }
+    };
+    checkPlatformAuthAvailability();
+  }, []);
+
+  // 手動註冊按鈕點擊處理
   const handleRegister = async () => {
     if (!username.trim()) {
       setError('用戶名不可為空');
@@ -30,11 +44,15 @@ const Register: React.FC = () => {
       if (!options || !options.challenge) {
         throw new Error('Registration options are incomplete or missing challenge');
       }      
-  
+      
+      // 將 `challenge` 和 `user.id` 轉換為 Uint8Array
+    //   options.challenge = bufferDecode(options.challenge);
+    //   options.user.id = bufferDecode(options.user.id);
+
       console.log('Received registration options:', options);
 
       // 向認證器請求註冊
-      const attestationResponse = await startRegistration(options);
+      const attestationResponse = await startRegistration({ optionsJSON: options });
 
       console.log('Received attestation response:', attestationResponse);
 
@@ -44,12 +62,7 @@ const Register: React.FC = () => {
         response: attestationResponse,
       });
       const { verified } = verificationResp.data;
-      if (verified) {
-        setSuccess('註冊成功！您現在可以返回登入頁面。');
-      } else {
-        setError('註冊失敗，請重試。');
-      }
-      
+
       console.log('Received verification response:', verificationResp.data);
 
       if (verified) {
@@ -81,6 +94,9 @@ const Register: React.FC = () => {
       </button>
       {success && <p className="register-success">{success}</p>}
       {error && <p className="register-error">{error}</p>}
+      <p className="back-to-login">
+        已有帳號？<Link to="/">返回登入頁面</Link>
+      </p>
     </div>
   );
 };
