@@ -1,55 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import { connectWebSocket, sendWebSocketMessage, closeWebSocket } from '../utils/socket';
-import '../styles/Chat.css';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../context/UserContext';
-
-interface Message {
-  sender: string;
-  content: string;
-}
+import { useNavigate } from 'react-router-dom';
+import '../styles/Chat.css';
+import io from 'socket.io-client';
 
 const Chat: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const { username } = useUser(); // 從全域 Context 獲取當前用戶名
+  const { username, logout } = useUser();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    connectWebSocket('ws://localhost:4000', (message) => {
-      setMessages((prev) => [...prev, message]);
-    });
-
-    return () => closeWebSocket();
-  }, []);
-
-  const sendMessage = () => {
-    if (input.trim()) {
-      sendWebSocketMessage({ sender: username, content: input });
-      setInput('');
-    }
+  const handleLogout = () => {
+    logout();
+    navigate('/'); // 登出後重定向至登入頁面
   };
+
+  if (!username) {
+    return <p>加載中...</p>;
+  }
 
   return (
     <div className="chat-container">
-      <h1>Chat Room</h1>
-      <div className="chat-messages">
-        {messages.map((msg, index) => (
-          <div key={index} className="chat-message">
-            <b>{msg.sender}:</b> {msg.content}
-          </div>
-        ))}
-      </div>
-      <div className="chat-input-container">
-        <input
-          type="text"
-          placeholder="輸入訊息"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="chat-input"
-        />
-        <button onClick={sendMessage} className="chat-send-button">
-          發送
-        </button>
-      </div>
+      <h1>歡迎來到聊天室</h1>
+      <p>您好，{username}！</p>
+      <button onClick={handleLogout} className="logout-button">
+        登出
+      </button>
     </div>
   );
 };

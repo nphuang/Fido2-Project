@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Login.css';
-// import { useUser } from '../context/UserContext';
+import { useUser } from '../context/UserContext';
 import { startAuthentication } from '@simplewebauthn/browser';
 
 const Login: React.FC = () => {
@@ -11,8 +11,8 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false); // 加載狀態
   const navigate = useNavigate();
-  // const { setUsername } = useUser();
-  
+  const { setUsername: setUserContextUsername } = useUser();
+
   const handleLogin = async () => {
     if (!username.trim()) {
       setError('用戶名不可為空');
@@ -37,7 +37,10 @@ const Login: React.FC = () => {
       console.log('Authentication options:', options);
 
       // 啟動 WebAuthn 驗證
-      const assertionResponse = await startAuthentication({ optionsJSON: options });
+      const assertionResponse = await startAuthentication({ 
+        optionsJSON: options,
+        // useBrowserAutofill: true,
+      });
 
       // 向後端傳送驗證結果
       const verificationResp = await axios.post('https://localhost:443/verify-authentication', {
@@ -47,7 +50,7 @@ const Login: React.FC = () => {
       const { verified } = verificationResp.data;
 
       if (verified) {
-        // setUsername(username);
+        setUserContextUsername(username); // 設置用戶名到 UserContext
         navigate('/chat'); // 跳轉到聊天頁面
       } else {
         setError('登入失敗，請重試');
@@ -70,6 +73,7 @@ const Login: React.FC = () => {
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         className="login-input"
+        // autoComplete="username webauthn" // Enable autofill for the input field
       />
       <button
         onClick={handleLogin}
