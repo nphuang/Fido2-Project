@@ -3,7 +3,7 @@ import { useUser } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom';
 import '../styles/Chat.css';
 import io from 'socket.io-client';
-const socket = io('https://localhost:443'); // 替换为你的服务器地址
+const socket = io('https://localhost:443');
 
 interface Message {
   username: string;

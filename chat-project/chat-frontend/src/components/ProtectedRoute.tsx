@@ -10,7 +10,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated } = useUser();
   const location = useLocation();
 
-  if (isAuthenticated && (location.pathname === '/' || location.pathname === '/register')) {
+  if (isAuthenticated && (location.pathname === '/' || location.pathname === '/register' || location.pathname === '/login')) {
     return <Navigate to="/chat" replace />;
   }
 

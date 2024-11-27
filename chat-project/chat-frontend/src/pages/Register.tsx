@@ -45,7 +45,7 @@ const Register: React.FC = () => {
         throw new Error('Registration options are incomplete or missing challenge');
       }      
       
-      // 將 `challenge` 和 `user.id` 轉換為 Uint8Array
+    // 將 `challenge` 和 `user.id` 轉換為 Uint8Array
     //   options.challenge = bufferDecode(options.challenge);
     //   options.user.id = bufferDecode(options.user.id);
 
@@ -77,6 +77,11 @@ const Register: React.FC = () => {
       setLoading(false); // 無論成功與否，清除加載狀態
     }
   };
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleRegister();
+    }
+  };
 
   return (
     <div className="register-container">
@@ -87,6 +92,7 @@ const Register: React.FC = () => {
         placeholder="輸入用戶名"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
+        onKeyDown={handleKeyPress}
         className="register-input"
       />
       <button onClick={handleRegister} className="register-button" disabled={loading}>
