@@ -1,6 +1,6 @@
 // import { useState } from 'react'
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Navigate, BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 // import reactLogo from './assets/react.svg'
 // import viteLogo from '/vite.svg'
 import './App.css'
@@ -48,7 +48,7 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Login />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </UserProvider>

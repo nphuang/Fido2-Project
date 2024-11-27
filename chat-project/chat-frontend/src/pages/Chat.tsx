@@ -18,6 +18,7 @@ const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   useEffect(() => {
     if (!username) {
@@ -43,6 +44,21 @@ const Chat: React.FC = () => {
   }, [username, navigate]);
 
   useEffect(() => {
+    socket.on('userTyping', (username: string) => {
+      setTypingUsers((prev) => [...new Set([...prev, username])]);
+    });
+  
+    socket.on('userStopTyping', (username: string) => {
+      setTypingUsers((prev) => prev.filter((user) => user !== username));
+    });
+  
+    return () => {
+      socket.off('userTyping');
+      socket.off('userStopTyping');
+    };
+  }, []);
+  
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -63,6 +79,28 @@ const Chat: React.FC = () => {
     if (e.key === 'Enter') {
       handleSendMessage();
     }
+  };
+
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessage(e.target.value);
+    if (e.target.value.trim()) {
+      socket.emit('typing', username);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit('stopTyping', username);
+      }, 500); // 0.5 秒後觸發停止輸入
+    } else {
+      socket.emit('stopTyping', username);
+    }
+  };
+  
+
+  const handleStopTyping = () => {
+    socket.emit('stopTyping', username);
   };
 
   if (!username) {
@@ -94,12 +132,18 @@ const Chat: React.FC = () => {
         ))}
         <div ref={messagesEndRef} />
       </div>
+      <div className="typing-status">
+        {typingUsers.length > 0 && (
+          <p>{typingUsers.join(', ')} 正在輸入...</p>
+        )}
+      </div>
       <div className="chat-input">
         <input
           type="text"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={handleTyping}
           onKeyDown={handleKeyPress}
+          onBlur={handleStopTyping}
           placeholder="輸入消息"
         />
         <button onClick={handleSendMessage}>發送</button>
