@@ -57,20 +57,20 @@ const io = new Server(httpsServer, {
 const onlineUsers = new Set();
 
 io.on('connection', (socket) => {
-  socket.on('join', (username) => {
-    onlineUsers.add(username);
+    socket.on('join', (username) => {
+          onlineUsers.add(username);
     io.emit('onlineUsers', Array.from(onlineUsers));
+      });
+
+    socket.on('leave', (username) => {
+            onlineUsers.delete(username);
+            io.emit('onlineUsers', Array.from(onlineUsers));
   });
 
-  socket.on('leave', (username) => {
-    onlineUsers.delete(username);
-    io.emit('onlineUsers', Array.from(onlineUsers));
-  });
-
-  socket.on('sendMessage', ({ username, message, timestamp }) => {
-    io.emit('message', { username, text: message, timestamp });
-  });
-
+  socket.on('sendMessage', ({ username, message, timestamp, special }) => {
+    io.emit('message', { username, text: message, timestamp, special });
+    });
+  
   socket.on('typing', (username) => {
     socket.broadcast.emit('userTyping', username);
   });
@@ -78,12 +78,12 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('userStopTyping', username);
   });
 
-  socket.on('disconnect', () => {
-    onlineUsers.forEach((user) => {
+    socket.on('disconnect', () => {
+        onlineUsers.forEach((user) => {
       if (socket.id === user.socketId) {
-        onlineUsers.delete(user.username);
-        io.emit('onlineUsers', Array.from(onlineUsers));
-      }
+          onlineUsers.delete(user.username);
+    io.emit('onlineUsers', Array.from(onlineUsers));
+}
     });
   });
 });

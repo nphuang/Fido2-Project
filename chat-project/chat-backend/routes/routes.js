@@ -62,7 +62,7 @@ router.get('/generate-registration-options', async (req, res) => {
     });
 
     setChallenge(user.id, options.challenge);
-    console.log('Generated registration options:', options);
+    // console.log('Generated registration options:', options);
     res.json(options);
   } catch (error) {
     console.error('Error generating registration options:', error);
@@ -150,7 +150,7 @@ router.get('/generate-authentication-options', async (req, res) => {
     });
 
     setChallenge(user.id, options.challenge);
-    console.log('Generated authentication options:', options);
+    // console.log('Generated authentication options:', options);
     res.json(options);
   } catch (error) {
     console.error('Error generating authentication options:', error);

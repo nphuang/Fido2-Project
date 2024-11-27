@@ -50,6 +50,27 @@
   font-size: 14px;
 }
 
+.special-message .message-text {
+  color: #d9534f; /* 特殊訊息的文字顏色 */
+  font-weight: bold; /* 特殊訊息的文字加粗 */
+  animation: highlight 0.5s ease-out;
+
+}
+
+
+@keyframes highlight {
+  0% {
+    border-radius: 5px;
+    background-color: #f5c6cb;
+    transform: scale(1.05);
+  }
+  100% {
+    border-radius: 5px;
+    background-color: #f8d7da;
+    transform: scale(1);
+  }
+}
+
 .chat-messages {
   max-height: 300px;
   overflow-y: auto;
@@ -81,6 +102,7 @@
   color: #999;
 }
 
+
 .chat-input {
   display: flex;
   justify-content: center;
@@ -101,7 +123,7 @@
   background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 0 5px 5px 0;
+  border-radius: 5px 5px 5px 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
@@ -126,4 +148,10 @@
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: #0056b3;
+}
+
+.error-message {
+  color: red;
+  margin-top: 10px;
+  font-size: 14px;
 }

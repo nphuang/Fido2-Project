@@ -4,11 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/Chat.css';
 import io from 'socket.io-client';
 const socket = io('https://localhost:443');
+import axios from 'axios';
+import { startAuthentication } from '@simplewebauthn/browser';
 
 interface Message {
   username: string;
   text: string;
   timestamp: string;
+  special?: boolean;
 }
 
 const Chat: React.FC = () => {
@@ -19,6 +22,8 @@ const Chat: React.FC = () => {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [error, setError] = useState(''); // 新增錯誤訊息狀態
+
 
   useEffect(() => {
     if (!username) {
@@ -69,12 +74,47 @@ const Chat: React.FC = () => {
 
   const handleSendMessage = () => {
     if (message.trim()) {
+      setError(''); // 清除錯誤訊息
       const timestamp = new Date().toLocaleTimeString();
       socket.emit('sendMessage', { username, message, timestamp });
       setMessage('');
     }
   };
 
+  const handleSendSpecialMessage = async () => {
+    if (message.trim()) {
+      try {
+        setError(''); // 清除錯誤訊息        
+        // 向後端請求 WebAuthn 驗證選項
+        const optionsResp = await axios.get('https://localhost:443/generate-authentication-options', {
+          params: { username },
+        });
+        const options = optionsResp.data;
+  
+        // 啟動 WebAuthn 驗證
+        const assertionResponse = await startAuthentication({ optionsJSON: options });
+  
+        // 向後端傳送驗證結果
+        const verificationResp = await axios.post('https://localhost:443/verify-authentication', {
+          username,
+          response: assertionResponse,
+        });
+        const { verified } = verificationResp.data;
+  
+        if (verified) {
+          const timestamp = new Date().toLocaleTimeString();
+          socket.emit('sendMessage', { username, message: `${message}`, timestamp, special: true });
+          setMessage('');
+        } else {
+          setError('WebAuthn 驗證失敗');
+        }
+      } catch (err) {
+        console.error(err);
+        setError('WebAuthn 驗證過程中發生錯誤');
+      }
+    }
+  };  
+  
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSendMessage();
@@ -92,7 +132,7 @@ const Chat: React.FC = () => {
       }
       typingTimeoutRef.current = setTimeout(() => {
         socket.emit('stopTyping', username);
-      }, 500); // 0.5 秒後觸發停止輸入
+      }, 1000); // 1 秒後觸發停止輸入
     } else {
       socket.emit('stopTyping', username);
     }
@@ -106,6 +146,9 @@ const Chat: React.FC = () => {
   if (!username) {
     return <p>加載中...</p>;
   }
+
+  
+
 
   return (
     <div className="chat-container">
@@ -124,7 +167,7 @@ const Chat: React.FC = () => {
       </div>
       <div className="chat-messages">
         {messages.map((msg, index) => (
-          <div key={index} className="message">
+          <div key={index} className={`message ${msg.special ? 'special-message' : ''}`}>
             <span className="message-user">{msg.username}</span>
             <span className="message-text">{msg.text}</span>
             <span className="message-timestamp">{msg.timestamp}</span>
@@ -147,7 +190,9 @@ const Chat: React.FC = () => {
           placeholder="輸入消息"
         />
         <button onClick={handleSendMessage}>發送</button>
+        <button onClick={handleSendSpecialMessage}>發送驗證訊息</button>
       </div>
+      {error && <p className="error-message">{error}</p>} {/* 顯示錯誤訊息 */}
     </div>
   );
 };
