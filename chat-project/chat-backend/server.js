@@ -12,6 +12,7 @@ import {
 import db from './database.js';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
 import dotenv from 'dotenv';
+import { Server } from 'socket.io';
 
 dotenv.config();
 
@@ -328,4 +329,55 @@ httpsServer.listen(HTTPS_PORT, () => {
 });
 
 // WebSocket 設置
-// setupWebSocket(server);
+const io = new Server(httpsServer, {
+  cors: {
+    origin: CORS_ORIGIN,
+    methods: ['GET', 'POST'],
+  },
+});
+
+const onlineUsers = new Set();
+
+io.on('connection', (socket) => {
+  socket.on('join', (username) => {
+    onlineUsers.add(username);
+    io.emit('onlineUsers', Array.from(onlineUsers));
+    // socket.broadcast.emit('message', {
+    //   username: '系統',
+    //   text: `${username} 加入了聊天室`,
+    //   timestamp: new Date().toLocaleTimeString(),
+    // });
+  });
+
+  socket.on('leave', (username) => {
+    onlineUsers.delete(username);
+    io.emit('onlineUsers', Array.from(onlineUsers));
+    // socket.broadcast.emit('message', {
+    //   username: '系統',
+    //   text: `${username} 離開了聊天室`,
+    //   timestamp: new Date().toLocaleTimeString(),
+    // });
+  });
+
+  socket.on('sendMessage', ({ username, message, timestamp }) => {
+    io.emit('message', { username, text: message, timestamp });
+  });
+
+  socket.on('disconnect', () => {
+    onlineUsers.forEach((user) => {
+      if (socket.id === user.socketId) {
+        onlineUsers.delete(user.username);
+        io.emit('onlineUsers', Array.from(onlineUsers));
+        // socket.broadcast.emit('message', {
+        //   username: '系統',
+        //   text: `${user.username} 離開了聊天室`,
+        //   timestamp: new Date().toLocaleTimeString(),
+        // });
+      }
+    });
+  });
+});
+
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});

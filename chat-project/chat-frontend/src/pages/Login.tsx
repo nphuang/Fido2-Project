@@ -63,6 +63,12 @@ const Login: React.FC = () => {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
+  };
+
   return (
     <div className="login-container">
       <h1>Webauthn Demo</h1>
@@ -72,6 +78,7 @@ const Login: React.FC = () => {
         placeholder="輸入用戶名"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
+        onKeyDown={handleKeyPress}
         className="login-input"
         // autoComplete="username webauthn" // Enable autofill for the input field
       />
