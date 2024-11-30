@@ -14,6 +14,32 @@ db.serialize(() => {
     else console.log('Users table initialized');
   });
 
+  // Chatroom
+  db.run(`
+    CREATE TABLE IF NOT EXISTS chatrooms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) console.error('Error creating chatrooms table:', err);
+    else console.log('Chatrooms table initialized');
+  });
+  
+  db.run(`
+    CREATE TABLE IF NOT EXISTS user_chatrooms (
+      user_id INTEGER,
+      chatroom_id INTEGER,
+      FOREIGN KEY (user_id) REFERENCES users (id),
+      FOREIGN KEY (chatroom_id) REFERENCES chatrooms (id),
+      PRIMARY KEY (user_id, chatroom_id)
+    )
+  `, (err) => {
+    if (err) console.error('Error creating user_chatrooms table:', err);
+    else console.log('User_Chatrooms table initialized');
+  });
+
+
   db.run(`
     CREATE TABLE IF NOT EXISTS passkeys (
       cred_id TEXT PRIMARY KEY,

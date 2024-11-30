@@ -46,3 +46,34 @@ export function savePasskey(passkey, callback) {
 export function updateCounter(credID, newCounter, callback) {
   db.run('UPDATE passkeys SET counter = ? WHERE cred_id = ?', [newCounter, credID], callback);
 }
+
+
+export function getChatroomByName(name, callback) {
+    db.get('SELECT * FROM chatrooms WHERE name = ?', [name], callback);
+}
+  
+export function createChatroom(name, callback) {
+    db.run('INSERT INTO chatrooms (name) VALUES (?)', [name], function (err) {
+      callback(err, this.lastID);
+    });
+}
+
+export function addUserToChatroom(userId, chatroomId, callback) {
+    db.run('INSERT INTO user_chatrooms (user_id, chatroom_id) VALUES (?, ?)', [userId, chatroomId], callback);
+}
+  
+export function removeUserFromChatroom(userId, chatroomId, callback) {
+    db.run('DELETE FROM user_chatrooms WHERE user_id = ? AND chatroom_id = ?', [userId, chatroomId], callback);
+}
+  
+export function getUsersInChatroom(chatroomId, callback) {
+    db.all('SELECT username FROM users WHERE id IN (SELECT user_id FROM user_chatrooms WHERE chatroom_id = ?)', [chatroomId], callback);
+}
+  
+export function deleteChatroom(chatroomId, callback) {
+    db.run('DELETE FROM chatrooms WHERE id = ?', [chatroomId], callback);
+}
+
+export function getAllChatrooms(callback) {
+    db.all('SELECT * FROM chatrooms', [], callback);
+}

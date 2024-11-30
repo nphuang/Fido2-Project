@@ -8,8 +8,156 @@ import {
 import { getUserByUsername, getPasskeysByUserId, saveUser, savePasskey, updateCounter } from '../services/databaseService.js';
 import { setChallenge, getChallenge } from '../utils/helpers.js';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
+import {
+  getChatroomByName,
+  createChatroom,
+  addUserToChatroom,
+  removeUserFromChatroom,
+  getUsersInChatroom,
+  deleteChatroom,
+  getAllChatrooms,
+} from '../services/databaseService.js';
 
 const router = express.Router();
+
+router.post('/create-chatroom', async (req, res) => {
+  const { username, roomName } = req.body;
+
+  try {
+    const user = await new Promise((resolve, reject) => {
+      getUserByUsername(username, (err, user) => {
+        if (err || !user) return reject(err || new Error('User not found'));
+        resolve(user);
+      });
+    });
+
+    const chatroom = await new Promise((resolve, reject) => {
+      getChatroomByName(roomName, (err, chatroom) => {
+        if (err || chatroom) return reject(err || new Error('Chatroom already exists'));
+        resolve(chatroom);
+      });
+    });
+
+    const chatroomId = await new Promise((resolve, reject) => {
+      createChatroom(roomName, (err, chatroomId) => {
+        if (err) return reject(err);
+        resolve(chatroomId);
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      addUserToChatroom(user.id, chatroomId, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+
+    res.json({ success: true, chatroomId });
+  } catch (error) {
+    console.error('Error creating chatroom:', error);
+    res.status(400).json({ error: 'Error creating chatroom', details: error.message });
+  }
+});
+
+router.post('/join-chatroom', async (req, res) => {
+  const { username, roomName } = req.body;
+
+  try {
+    const user = await new Promise((resolve, reject) => {
+      getUserByUsername(username, (err, user) => {
+        if (err || !user) return reject(err || new Error('User not found'));
+        resolve(user);
+      });
+    });
+
+    const chatroom = await new Promise((resolve, reject) => {
+      getChatroomByName(roomName, (err, chatroom) => {
+        if (err || !chatroom) return reject(err || new Error('Chatroom not found'));
+        resolve(chatroom);
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      addUserToChatroom(user.id, chatroom.id, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error joining chatroom:', error);
+    res.status(400).json({ error: 'Error joining chatroom', details: error.message });
+  }
+});
+
+router.post('/leave-chatroom', async (req, res) => {
+  const { username, roomName } = req.body;
+
+  try {
+    const user = await new Promise((resolve, reject) => {
+      getUserByUsername(username, (err, user) => {
+        if (err || !user) return reject(err || new Error('User not found'));
+        resolve(user);
+      });
+    });
+
+    const chatroom = await new Promise((resolve, reject) => {
+      getChatroomByName(roomName, (err, chatroom) => {
+        if (err || !chatroom) return reject(err || new Error('Chatroom not found'));
+        resolve(chatroom);
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      removeUserFromChatroom(user.id, chatroom.id, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+
+    const usersInChatroom = await new Promise((resolve, reject) => {
+      getUsersInChatroom(chatroom.id, (err, users) => {
+        if (err) return reject(err);
+        resolve(users);
+      });
+    });
+
+    if (usersInChatroom.length === 0) {
+      await new Promise((resolve, reject) => {
+        deleteChatroom(chatroom.id, (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error leaving chatroom:', error);
+    res.status(400).json({ error: 'Error leaving chatroom', details: error.message });
+  }
+});
+
+router.get('/chatrooms', async (req, res) => {
+  try {
+    const chatrooms = await new Promise((resolve, reject) => {
+      getAllChatrooms((err, chatrooms) => {
+        if (err) return reject(err);
+        resolve(chatrooms);
+      });
+    });
+
+    res.json({ chatrooms });
+  } catch (error) {
+    console.error('Error fetching chatrooms:', error);
+    res.status(400).json({ error: 'Error fetching chatrooms', details: error.message });
+  }
+});
+
+////////////////////////////////////////////////////////////////////////////////////////////////  
+
+
 
 const rpName = 'Chat Room Demo';
 const rpID = 'localhost';
