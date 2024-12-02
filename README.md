@@ -1,20 +1,25 @@
-# Fido2-Project
-simplewebauthn demo
+# Fido2 Project
 
+A demo using SimpleWebAuthn.
 
-## Reference
-https://github.com/MasterKale/SimpleWebAuthn
+## Features
 
-https://simplewebauthn.dev/docs/
+- **Registration with WebAuthn**
+- **Login with WebAuthn**
+- **Real-time Messaging**: Chat in real-time with WebSocket.
+- **Typing Indicator**: See when others are typing.
 
-https://ayk.moe/articles/what-webauthn-is-and-develop-a-simple-demo/index.html
+## Technologies Used
 
-https://blog.logto.io/zh-TW/webauthn-nextjs
+- **WebAuthn**: SimpleWebAuthn
+- **Frontend**: React, Vite, TypeScript, Axios, Socket.IO Client, SimpleWebAuthn Browser
+- **Backend**: Express, SQLite, Socket.IO, SimpleWebAuthn Server, dotenv, cors, body-parser
 
-https://fullstackladder.dev/blog/2023/06/11/passkeys-using-simplewebauthn/
+## TODO
 
-https://llx.life/note/add-webauthn-to-my-blog
+- Improve UI/UX for the chat application.
+- Enhance chatroom system and functionality.
 
-https://developers.google.com/codelabs/webauthn-reauth?hl=zh-tw#0
+## Documentation
 
-https://www.passkeys.com/guide
+[SimpleWebAuthn Documentation](https://simplewebauthn.dev/docs/)
